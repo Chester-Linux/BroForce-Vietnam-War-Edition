@@ -302,8 +302,8 @@ grupo_explosoes = pygame.sprite.Group()
 
 #Criando personagens
 #Tipo, posição X, posição Y, escala, velocidade, qtd_vida
-jogador = Soldado('Rambo', width/2, height/2, 0.4, 10, 100)
-inimigo = Soldado('Beatles', width/4, 900, 0.4, 10, 50)
+jogador = Soldado('Personagem_Rambo', width/2, height/2, 0.4, 10, 100)
+inimigo = Soldado('Personagem_Vietnamita', width/4, 900, 0.4, 10, 50)
 
 while True:
 
