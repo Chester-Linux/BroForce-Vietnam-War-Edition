@@ -32,14 +32,25 @@ mover_esquerda = False
 mover_direita = False
 atirar = False
 
+#Cores
+RED = (255, 0, 0)
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+YELLOW = (255, 255, 0)
+GRAY = (80, 80, 80)
+
 #Definindo o Background
 BG = (145, 201, 125)
-RED = (255, 0, 0)
 
 def Carregar_Background():
 	screen.fill(BG)
 	pygame.draw.line(screen, RED, (0, 1000), (width, 1000))
 
+#Definindo a HUD (vulgo interface)// Temporariamente em desuso
+font = pygame.font.SysFont('Futura', 50)
+def Carregar_HUD(text, font, text_col, x, y):
+	sprite = font.render(text, True, text_col)
+	screen.blit(sprite, (x, y))
 
 #Classe para criação de personagem
 class Soldado(pygame.sprite.Sprite):
@@ -190,7 +201,24 @@ class Soldado(pygame.sprite.Sprite):
 	def Carregar(self):
 		#Carregar o personagem
 		screen.blit(pygame.transform.flip(self.sprite, self.flip, False), self.rect)
+
+		#Para ver as hitbox
 		#pygame.draw.rect(screen, RED, self.rect, 1)
+
+#Clase para a barra de recarregar a arma
+class BarraRealoading():
+	def __init__(self, x, y, limitador_projeteis):
+		self.x = x
+		self.y = y
+		self.limitador_projeteis = limitador_projeteis
+		self.max_limitador_projeteis = limitador_projeteis
+
+	def Carregar(self, limitador_projeteis):
+
+		pygame.draw.rect(screen, GRAY, (self.x, self.y, 150, 20))
+		#pygame.draw.rect((screen, YELLOW, (self.x, self.y, 150 * self.limitador_projeteis, 20)))
+
+
 
 #Classe para a criação de projetil
 class Projetil(pygame.sprite.Sprite):
@@ -241,13 +269,16 @@ class Projetil(pygame.sprite.Sprite):
 		for inimigo in grupo_inimigos:
 			if pygame.sprite.spritecollide(inimigo, grupo_projeteis, False):
 				if inimigo.vida:
-					inimigo.qtd_vida -= 25
+					inimigo.qtd_vida -= 20
+					jogador.qtd_vida += 10
+					if jogador.qtd_vida > jogador.qtd_max_vida:
+						jogador.qtd_vida = jogador.qtd_max_vida
 					self.kill()
 					explosao = Explosao(self.rect.x, self.rect.y, 1)
 					grupo_explosoes.add(explosao)
 					#Aplicando dano em área para os personagens
 					if abs(self.rect.centerx - inimigo.rect.centerx) < TILE_SIZE * 3 and abs(self.rect.centery - inimigo.rect.centery) < TILE_SIZE * 3:
-						inimigo.qtd_vida -= 50
+						inimigo.qtd_vida -= 30
 
 		#Carregar o sprite
 		self.Direcao()
@@ -281,6 +312,8 @@ class Projetil(pygame.sprite.Sprite):
 	def Carregar(self):
 		#Carregar o personagem
 		screen.blit(pygame.transform.flip(self.image, self.flip, False), self.rect)
+		
+		#Para ver as hitbox
 		#pygame.draw.rect(screen, RED, self.rect, 1)
 
 class Explosao(pygame.sprite.Sprite):
@@ -322,6 +355,8 @@ class Explosao(pygame.sprite.Sprite):
 
 	def Carregar(self):
 		screen.blit(self.image, self.rect)
+
+		#Para ver as hitbox
 		#pygame.draw.rect(screen, RED, self.rect, 1)
 
 
@@ -337,25 +372,36 @@ jogador = Soldado('Personagem_Rambo', width/2, height/2, 0.4, 10, 100)
 inimigo = Soldado('Personagem_Vietnamita', width/4, 900, 0.4, 10, 50)
 grupo_inimigos.add(inimigo)
 
+#Criando a barra de recarregar a arma
+barra_recarregar_arma = BarraRealoading(10, 10, jogador.limitador_projeteis)
+
 while True:
 
 	#Taxas de quadros por segundo
 	clock.tick(FPS)
 
-	#Atualização do background
+	#Atualizando o background
 	Carregar_Background()
-	
+
+
 	#Atualizar grupos
 	grupo_projeteis.update()
 	grupo_explosoes.update()
 
+
 	#Atualizar personagens
 	jogador.update()
-
 	for inimigo in grupo_inimigos:
 		inimigo.update()
 
-	
+
+	#Atualizando a HUD
+	#HUD da vida
+	Carregar_HUD(f'VIDAS: {jogador.qtd_vida}/{jogador.qtd_max_vida}', font, WHITE, 200, 950)
+	#HUD da arma recarregando
+	barra_recarregar_arma.Carregar(jogador.limitador_projeteis)
+
+
 	#Se o protagonista está vivo
 	if jogador.vida:
 		#Atirando projetis
@@ -370,11 +416,13 @@ while True:
 			jogador.Atualizar_Acao(0)#0: Animação de descanso
 		jogador.Mover(mover_esquerda, mover_direita)
 
+
 	#Sair do jogo
 	for event in pygame.event.get():
 		if event.type == QUIT:
 			pygame.quit()
 			exit()
+
 
 		#Teclas precionadas
 		if event.type == pygame.KEYDOWN:
