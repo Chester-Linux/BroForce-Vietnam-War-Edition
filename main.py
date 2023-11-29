@@ -158,8 +158,11 @@ class Soldado(pygame.sprite.Sprite):
 		self.rect.y += dy
 
 	def Atirar(self):
+     
+		max_limitador_projeteis = 60
+     
 		if self.limitador_projeteis == 0:
-			self.limitador_projeteis = 60
+			self.limitador_projeteis = max_limitador_projeteis
 			projetil = Projetil(self.rect.centerx, self.rect.centery, self.direcao)
 			grupo_projeteis.add(projetil)
 		
@@ -211,12 +214,16 @@ class BarraRealoading():
 		self.x = x
 		self.y = y
 		self.limitador_projeteis = limitador_projeteis
-		self.max_limitador_projeteis = limitador_projeteis
 
 	def Carregar(self, limitador_projeteis):
+     
+		max_limitador_projeteis = 60
+     
+		porcentagem = limitador_projeteis / max_limitador_projeteis
 
-		pygame.draw.rect(screen, GRAY, (self.x, self.y, 150, 20))
-		#pygame.draw.rect((screen, YELLOW, (self.x, self.y, 150 * self.limitador_projeteis, 20)))
+		pygame.draw.rect(screen, BLACK, (self.x - 200, self.y - 100, 450, 350))
+		pygame.draw.rect(screen, GRAY, (self.x - 5, self.y - 5, 230, 60))
+		pygame.draw.rect(screen, YELLOW, ((self.x, self.y, 220 * porcentagem, 50)))
 
 
 
@@ -277,7 +284,7 @@ class Projetil(pygame.sprite.Sprite):
 					explosao = Explosao(self.rect.x, self.rect.y, 1)
 					grupo_explosoes.add(explosao)
 					#Aplicando dano em área para os personagens
-					if abs(self.rect.centerx - inimigo.rect.centerx) < TILE_SIZE * 3 and abs(self.rect.centery - inimigo.rect.centery) < TILE_SIZE * 3:
+					if abs(self.rect.centerx - inimigo.rect.centerx) < 100 and abs(self.rect.centery - inimigo.rect.centery) < 100:
 						inimigo.qtd_vida -= 30
 
 		#Carregar o sprite
@@ -369,11 +376,11 @@ grupo_explosoes = pygame.sprite.Group()
 #Criando personagens
 #Tipo, posição X, posição Y, escala, velocidade, qtd_vida
 jogador = Soldado('Personagem_Rambo', width/2, height/2, 0.4, 10, 100)
-inimigo = Soldado('Personagem_Vietnamita', width/4, 900, 0.4, 10, 50)
+inimigo = Soldado('Personagem_Vietnamita', width/4, 900, 0.4, 6, 50)
 grupo_inimigos.add(inimigo)
 
 #Criando a barra de recarregar a arma
-barra_recarregar_arma = BarraRealoading(10, 10, jogador.limitador_projeteis)
+barra_recarregar_arma = BarraRealoading(170, 1020, jogador.limitador_projeteis)
 
 while True:
 
@@ -384,22 +391,24 @@ while True:
 	Carregar_Background()
 
 
-	#Atualizar grupos
+	#Atualizar projeteis
 	grupo_projeteis.update()
-	grupo_explosoes.update()
 
 
 	#Atualizar personagens
 	jogador.update()
 	for inimigo in grupo_inimigos:
 		inimigo.update()
+  
+	#Atualizar explosão
+	grupo_explosoes.update()
 
 
 	#Atualizando a HUD
-	#HUD da vida
-	Carregar_HUD(f'VIDAS: {jogador.qtd_vida}/{jogador.qtd_max_vida}', font, WHITE, 200, 950)
 	#HUD da arma recarregando
 	barra_recarregar_arma.Carregar(jogador.limitador_projeteis)
+	#HUD da vida
+	Carregar_HUD(f'VIDAS: {jogador.qtd_vida}/{jogador.qtd_max_vida}', font, WHITE, 150, 950)
 
 
 	#Se o protagonista está vivo
