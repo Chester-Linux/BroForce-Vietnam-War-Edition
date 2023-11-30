@@ -1,6 +1,7 @@
 import pygame
 import os
 import sys
+import csv
 from random import randint
 from pygame.locals import *
 from sys import exit
@@ -21,8 +22,17 @@ pygame.display.set_caption ("Saving the John Lennon")
 clock = pygame.time.Clock()
 FPS = 60
 
+
+#Linhas e colunas
+linhas = 40
+colunas = 300
+
 #TILE_SIZE
-TILE_SIZE = 40
+TILE_SIZE = height//linhas
+TILE_TYPES = 11
+
+#Niveis
+nivel = 1
 
 #Gravidade
 GRAVIDADE = 0.5
@@ -57,6 +67,12 @@ class Soldado(pygame.sprite.Sprite):
 	def __init__(self, tipo_personagem, x, y, scale, velocidade, qtd_vida):
 		pygame.sprite.Sprite.__init__(self)
 
+		#Variveis exclusivas para IA's
+		self.contador_passos = 0
+		self.inativo = False
+		self.contador_inativo = 0
+		self.visao = pygame.Rect(0, 0, 450, 20)
+		
 		#Variavel que verifica se o personagem está "vivo"
 		self.vida = True
 
@@ -106,6 +122,7 @@ class Soldado(pygame.sprite.Sprite):
 		self.rect = self.image.get_rect()
 		self.rect.center = (x , y)
 
+
 	def update(self):
 		#Atualizar a animação
 		self.Atualizacao_Animacao()
@@ -117,6 +134,7 @@ class Soldado(pygame.sprite.Sprite):
 
 		#Carregar o sprite
 		self.Carregar()
+
 
 	def Mover(self, mover_esquerda, mover_direita):
 		#Atribuindo variáveis ​​de movimento
@@ -152,20 +170,22 @@ class Soldado(pygame.sprite.Sprite):
 			dy = 1000 - self.rect.bottom
 			self.no_ar = False
 
-
 		#Atualizar a posição
 		self.rect.x += dx
 		self.rect.y += dy
 
-	def Atirar(self):
+
+	def Atirar(self, scale):
+		self.scale = scale
      
 		max_limitador_projeteis = 60
      
 		if self.limitador_projeteis == 0:
 			self.limitador_projeteis = max_limitador_projeteis
-			projetil = Projetil(self.rect.centerx, self.rect.centery, self.direcao)
+			projetil = Projetil(self.rect.centerx, self.rect.centery, self.direcao, self.tipo_personagem, self.scale)
 			grupo_projeteis.add(projetil)
 		
+
 	def Atualizacao_Animacao(self):
 
 		#Tempo da animação
@@ -186,6 +206,7 @@ class Soldado(pygame.sprite.Sprite):
 			else:
 				self.frame_index = 0
 
+
 	def Atualizar_Acao(self, new_action):
 		#Checar se a uma nova ação
 		if new_action != self.action:
@@ -194,12 +215,14 @@ class Soldado(pygame.sprite.Sprite):
 			self.frame_index = 0
 			self.atualizacao_tempo = pygame.time.get_ticks()
 
+
 	def Verificar_Saude(self):
 		if self.qtd_vida <= 0:
 			self.qtd_vida = 0
 			self.velocidade = 0
 			self.vida = False
 			self.Atualizar_Acao(3)
+
 
 	def Carregar(self):
 		#Carregar o personagem
@@ -208,12 +231,59 @@ class Soldado(pygame.sprite.Sprite):
 		#Para ver as hitbox
 		#pygame.draw.rect(screen, RED, self.rect, 1)
 
+	def IA_Vietnamita(self):
+		#Função para fazer as IA's do Vietnamitas
+		#Verificador de inatividade
+	
+		if self.vida and jogador.vida:
+			#Gerador de número aleatório
+			if self.inativo == False and randint(1, 200) == 1:
+				#Animação de parado
+				self.Atualizar_Acao(0)#0: Parado
+				self.inativo = True
+				self.contador_inativo = randint(50, 120)
+
+			#Quando o inimigo avistar o jogador, ele vai parar e atira
+			if self.visao.colliderect(jogador.rect):
+				self.Atualizar_Acao(0)#0: Parado
+				self.Atirar(0.07)
+			else:
+				#Verificador de inatividade
+				if self.inativo == False:
+					#Verificando a direção do personagem
+					if self.direcao == 1:
+						IA_mover_direita = True
+					else:
+						IA_mover_direita = False
+					IA_mover_esquerda = not IA_mover_direita
+					#Função que controla a movimentação
+					self.Mover(IA_mover_esquerda, IA_mover_direita)
+					#Animação de andar
+					self.Atualizar_Acao(1)#1: Andar
+
+					#Contando os passos
+					self.contador_passos += 1
+
+					#Caixa de visão
+					self.visao.center = (self.rect.centerx + 200 * self.direcao, self.rect.centery)
+
+					#Detectando o limite de passos dados
+					if self.contador_passos > TILE_SIZE:
+						self.direcao *= -1
+						self.contador_passos *= -1
+				else:
+						self.contador_inativo -= 1
+						if self.contador_inativo <= 0:
+							self.inativo = False
+
+
 #Clase para a barra de recarregar a arma
 class BarraRealoading():
 	def __init__(self, x, y, limitador_projeteis):
 		self.x = x
 		self.y = y
 		self.limitador_projeteis = limitador_projeteis
+
 
 	def Carregar(self, limitador_projeteis):
      
@@ -229,7 +299,7 @@ class BarraRealoading():
 
 #Classe para a criação de projetil
 class Projetil(pygame.sprite.Sprite):
-	def __init__(self, x , y, direcao):
+	def __init__(self, x , y, direcao, tipo_personagem, scale):
 		pygame.sprite.Sprite.__init__(self)
 		#Velocidade
 		self.speed = 25
@@ -239,22 +309,26 @@ class Projetil(pygame.sprite.Sprite):
 		self.flip = False
 
 		#Escala
-		scale = 0.2
+		self.scale = scale
 
 		#Variaveis pra rodar as animações
 		self.lista_animacao = []
 		self.frame_index = 0
 		self.atualizacao_tempo = 0
+
+		#Variavel que muda o projetil dependendo do tipo do personagem
+		self.tipo_personagem = tipo_personagem
 		
 		#Selecionando o sprite
-		num_quadros = len(os.listdir(f'Municao_Explosao/Projetil'))
+		num_quadros = len(os.listdir(f'{tipo_personagem}/Projetil'))
 		for i in range(num_quadros):
-			sprite = pygame.image.load(f'Municao_Explosao/Projetil/{i}.png').convert_alpha()
+			sprite = pygame.image.load(f'{tipo_personagem}/Projetil/{i}.png').convert_alpha()
 			sprite = pygame.transform.scale_by(sprite, scale)
 			self.lista_animacao.append(sprite)
 		self.image = self.lista_animacao[self.frame_index]
 		self.rect = self.image.get_rect()
 		self.rect.center = (x + 90 * self.direcao, y + -5)
+
 
 	def update(self):
 
@@ -291,6 +365,7 @@ class Projetil(pygame.sprite.Sprite):
 		self.Direcao()
 		self.Carregar()
 
+
 	def Atualizacao_Animacao(self):
 
 		#Tempo da animação
@@ -309,12 +384,14 @@ class Projetil(pygame.sprite.Sprite):
 		if self.frame_index >= len(self.lista_animacao):
 			self.frame_index = 0
 
+
 	def Direcao(self):
 
 		if self.direcao == -1:
 			self.flip = True
 		else:
 			self.flip = False
+
 
 	def Carregar(self):
 		#Carregar o personagem
@@ -332,14 +409,15 @@ class Explosao(pygame.sprite.Sprite):
 		self.atualizacao_tempo = 0
 		
 		#Selecionando o sprite
-		num_quadros = len(os.listdir(f'Municao_Explosao/Explosao'))
+		num_quadros = len(os.listdir(f'Estouro/Explosao'))
 		for i in range(num_quadros):
-			sprite = pygame.image.load(f'Municao_Explosao/Explosao/{i}.png').convert_alpha()
+			sprite = pygame.image.load(f'Estouro/Explosao/{i}.png').convert_alpha()
 			sprite = pygame.transform.scale_by(sprite, scale)
 			self.lista_animacao.append(sprite)
 		self.image = self.lista_animacao[self.frame_index]
 		self.rect = self.image.get_rect()
 		self.rect.center = (x, y)
+
 
 	def update(self):
 		#Tempo da animação
@@ -360,6 +438,7 @@ class Explosao(pygame.sprite.Sprite):
 
 		self.Carregar()
 
+
 	def Carregar(self):
 		screen.blit(self.image, self.rect)
 
@@ -376,11 +455,24 @@ grupo_explosoes = pygame.sprite.Group()
 #Criando personagens
 #Tipo, posição X, posição Y, escala, velocidade, qtd_vida
 jogador = Soldado('Personagem_Rambo', width/2, height/2, 0.4, 10, 100)
-inimigo = Soldado('Personagem_Vietnamita', width/4, 900, 0.4, 6, 50)
+inimigo = Soldado('Personagem_Vietnamita', width/3, 900, 0.4, 5, 50)
 grupo_inimigos.add(inimigo)
 
 #Criando a barra de recarregar a arma
 barra_recarregar_arma = BarraRealoading(170, 1020, jogador.limitador_projeteis)
+
+#Criar listas de blocos vazios
+world_data = []
+for linha in range(linhas):
+	R = [-1] * colunas
+	world_data.append(R)
+
+#Carregar os dados e criar um mundo
+with open(f'nivel{nivel}.csv', newline='') as csvfile:
+	reader = csv.reader(csvfile, delimiter=',')
+	for x, linha in enumerate(reader):
+		for y, tile in enumerate(linha):
+			world_data[x][y] = int(tile)
 
 while True:
 
@@ -398,6 +490,7 @@ while True:
 	#Atualizar personagens
 	jogador.update()
 	for inimigo in grupo_inimigos:
+		inimigo.IA_Vietnamita()
 		inimigo.update()
   
 	#Atualizar explosão
@@ -415,14 +508,14 @@ while True:
 	if jogador.vida:
 		#Atirando projetis
 		if atirar:
-			jogador.Atirar()
+			jogador.Atirar(0.2)
 		#Controlando quando ativa qual animação
 		if jogador.no_ar:
 			jogador.Atualizar_Acao(2)#2: Animação de pular
 		elif mover_esquerda or mover_direita:
 			jogador.Atualizar_Acao(1)#1: Animação de andar
 		else:
-			jogador.Atualizar_Acao(0)#0: Animação de descanso
+			jogador.Atualizar_Acao(0)#0: Animação de parado
 		jogador.Mover(mover_esquerda, mover_direita)
 
 
