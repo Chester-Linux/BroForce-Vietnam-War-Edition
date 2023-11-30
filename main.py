@@ -31,7 +31,7 @@ TILE_SIZE = height//linhas
 TILE_TYPES = len(os.listdir(f'Matrizes/Grades'))
 
 #Niveis
-level = 0
+level = 1
 
 #Gravidade
 GRAVIDADE = 0.5
@@ -40,6 +40,12 @@ GRAVIDADE = 0.5
 mover_esquerda = False
 mover_direita = False
 atirar = False
+
+#Armazenar tiles em uma lista
+lista_sprites = []
+for i in range(TILE_TYPES):
+	sprite = pygame.image.load(f'Matrizes/Grades/{i}.png')
+	sprite = pygame.transform.scale(sprite, TILE_SIZE)
 
 #Cores
 RED = (255, 0, 0)
@@ -447,6 +453,16 @@ class Explosao(pygame.sprite.Sprite):
 class Mapa():
 	def __init__(self):
 		self.lista_obstaculo = []
+
+	def process_data(self, data):
+		for y, linha in enumerate(data):
+			for x, tile in enumerate(linha):
+				if tile >= 0:
+					sprite = lista_sprites[tile]
+					sprite_rect = sprite.get_rect()
+					sprite_rect.x = x * TILE_SIZE
+					sprite_rect.y = y * TILE_SIZE
+					tile_data = (sprite, sprite_rect)
 
 #Criando grupos
 grupo_inimigos = pygame.sprite.Group()
