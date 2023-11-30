@@ -29,7 +29,7 @@ colunas = 300
 
 #TILE_SIZE
 TILE_SIZE = height//linhas
-TILE_TYPES = 11
+TILE_TYPES = len(os.listdir(f'Matrizes/Grades'))
 
 #Niveis
 nivel = 1
