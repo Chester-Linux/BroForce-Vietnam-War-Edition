@@ -22,17 +22,16 @@ pygame.display.set_caption ("Saving the John Lennon")
 clock = pygame.time.Clock()
 FPS = 60
 
-
 #Linhas e colunas
-linhas = 40
-colunas = 300
+linhas = 16
+colunas = 200
 
 #TILE_SIZE
 TILE_SIZE = height//linhas
 TILE_TYPES = len(os.listdir(f'Matrizes/Grades'))
 
 #Niveis
-nivel = 1
+level = 0
 
 #Gravidade
 GRAVIDADE = 0.5
@@ -445,6 +444,9 @@ class Explosao(pygame.sprite.Sprite):
 		#Para ver as hitbox
 		#pygame.draw.rect(screen, RED, self.rect, 1)
 
+class Mapa():
+	def __init__(self):
+		self.lista_obstaculo = []
 
 #Criando grupos
 grupo_inimigos = pygame.sprite.Group()
@@ -468,7 +470,7 @@ for linha in range(linhas):
 	world_data.append(R)
 
 #Carregar os dados e criar um mundo
-with open(f'nivel{nivel}.csv', newline='') as csvfile:
+with open(f'Matrizes/level{level}_data.csv', newline='') as csvfile:
 	reader = csv.reader(csvfile, delimiter=',')
 	for x, linha in enumerate(reader):
 		for y, tile in enumerate(linha):
