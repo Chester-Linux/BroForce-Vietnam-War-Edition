@@ -408,9 +408,9 @@ class Explosao(pygame.sprite.Sprite):
 		self.atualizacao_tempo = 0
 		
 		#Selecionando o sprite
-		num_quadros = len(os.listdir(f'Estouro/Explosao'))
+		num_quadros = len(os.listdir(f'Objeto_Explosao/Explosao'))
 		for i in range(num_quadros):
-			sprite = pygame.image.load(f'Estouro/Explosao/{i}.png').convert_alpha()
+			sprite = pygame.image.load(f'Objeto_Explosao/Explosao/{i}.png').convert_alpha()
 			sprite = pygame.transform.scale_by(sprite, scale)
 			self.lista_animacao.append(sprite)
 		self.image = self.lista_animacao[self.frame_index]
