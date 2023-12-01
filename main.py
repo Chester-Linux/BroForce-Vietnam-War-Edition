@@ -23,8 +23,8 @@ clock = pygame.time.Clock()
 FPS = 60
 
 #Linhas e colunas
-linhas = 16
-colunas = 200
+linhas = 20
+colunas = 100
 
 #TILE_SIZE
 TILE_SIZE = height//linhas
