@@ -30,6 +30,13 @@ colunas = 100
 TILE_SIZE = height//linhas
 TILE_TYPES = len(os.listdir(f'Matrizes/Grades'))
 
+#Armazenar tiles em uma lista
+lista_sprites = []
+for i in range(TILE_TYPES):
+	sprite = pygame.image.load(f'Matrizes/Grades/{i}.png')
+	sprite = pygame.transform.scale(sprite, (TILE_SIZE, TILE_SIZE))
+	lista_sprites.append(sprite)
+
 #Niveis
 level = 1
 
@@ -41,13 +48,6 @@ mover_esquerda = False
 mover_direita = False
 atirar = False
 
-#Armazenar tiles em uma lista
-lista_sprites = []
-for i in range(TILE_TYPES):
-	sprite = pygame.image.load(f'Matrizes/Grades/{i}.png')
-	sprite = pygame.transform.scale(sprite, (TILE_SIZE, TILE_SIZE))
-	lista_sprites.append(sprite)
-
 #Cores
 RED = (255, 0, 0)
 WHITE = (255, 255, 255)
@@ -55,11 +55,22 @@ BLACK = (0, 0, 0)
 YELLOW = (255, 255, 0)
 GRAY = (80, 80, 80)
 
-#Definindo o Background
+#Variaveis para mover a câmera
+SCROLL_THRESH = 300
+screen_scroll = 0
+bg_scroll = 0
+
+#Carregando o background
+florest1_image = pygame.image.load('Matrizes/Background/florest1.png').convert_alpha()
+florest2_image = pygame.image.load('Matrizes/Background/florest2.png').convert_alpha()
+sky_image = pygame.image.load('Matrizes/Background/sky.png').convert_alpha()
 BG = (145, 201, 125)
 
 def Carregar_Background():
 	screen.fill(BG)
+	screen.blit(sky_image, (0, 0))
+	screen.blit(florest2_image, (0, height - florest2_image.get_height() - 300))
+	screen.blit(florest1_image, (0, height - florest1_image.get_height() - 150))
 
 #Definindo a HUD (vulgo interface)// Temporariamente em desuso
 font = pygame.font.SysFont('Futura', 50)
@@ -145,6 +156,7 @@ class Soldado(pygame.sprite.Sprite):
 
 	def Mover(self, mover_esquerda, mover_direita):
 		#Atribuindo variáveis ​​de movimento
+		screen_scroll = 0
 		dy = 0
 		dx = 0
 
@@ -191,6 +203,14 @@ class Soldado(pygame.sprite.Sprite):
 		#Atualizar a posição
 		self.rect.x += dx
 		self.rect.y += dy
+
+		#Atualizar a câmera
+		if self.tipo_personagem == 'jogador':
+			if self.rect.right > width - SCROLL_THRESH or self.rect.left < SCROLL_THRESH:
+				self.rect.x -= dx
+				screen_scroll = -dx
+
+		return screen_scroll
 
 
 	def Atirar(self, scale):
@@ -247,7 +267,7 @@ class Soldado(pygame.sprite.Sprite):
 		screen.blit(pygame.transform.flip(self.sprite, self.flip, False), self.rect)
 
 		#Para ver as hitbox
-		pygame.draw.rect(screen, RED, self.rect, 1)
+		#pygame.draw.rect(screen, RED, self.rect, 1)
 
 	def IA_Vietnamita(self):
 		#Função para fazer as IA's do Vietnamitas
@@ -602,7 +622,9 @@ while True:
 			jogador.Atualizar_Acao(1)#1: Animação de andar
 		else:
 			jogador.Atualizar_Acao(0)#0: Animação de parado
-		jogador.Mover(mover_esquerda, mover_direita)
+		screen_scroll = jogador.Mover(mover_esquerda, mover_direita)
+
+		print (screen_scroll)
 
 
 	#Sair do jogo
