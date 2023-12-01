@@ -45,7 +45,8 @@ atirar = False
 lista_sprites = []
 for i in range(TILE_TYPES):
 	sprite = pygame.image.load(f'Matrizes/Grades/{i}.png')
-	sprite = pygame.transform.scale(sprite, TILE_SIZE)
+	sprite = pygame.transform.scale(sprite, (TILE_SIZE, TILE_SIZE))
+	lista_sprites.append(sprite)
 
 #Cores
 RED = (255, 0, 0)
@@ -59,7 +60,6 @@ BG = (145, 201, 125)
 
 def Carregar_Background():
 	screen.fill(BG)
-	pygame.draw.line(screen, RED, (0, 1000), (width, 1000))
 
 #Definindo a HUD (vulgo interface)// Temporariamente em desuso
 font = pygame.font.SysFont('Futura', 50)
@@ -126,6 +126,8 @@ class Soldado(pygame.sprite.Sprite):
 		self.image = self.lista_animacao[self.action][self.frame_index]
 		self.rect = self.image.get_rect()
 		self.rect.center = (x , y)
+		self.width = self.image.get_width()
+		self.height = self.image.get_height()
 
 
 	def update(self):
@@ -170,10 +172,21 @@ class Soldado(pygame.sprite.Sprite):
 			self.vetor_y
 		dy += self.vetor_y
 
-		#Verificador de colisão com o chão, Obs: É provisorio
-		if self.rect.bottom + dy > 1000:
-			dy = 1000 - self.rect.bottom
-			self.no_ar = False
+		#Verificador de colisão
+		for tile in mapa.lista_obstaculo:
+			#Para o vetor X
+			if tile[1].colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
+				dx = 0
+			#Para o vetor y
+			if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
+				#Verificando se ele está em cima ou em baixo de uma grade
+				if self.vetor_y < 0:
+					self.vetor_y = 0
+					dy = tile[1].bottom - self.rect.top
+				elif self.vetor_y >= 0:
+					self.no_ar = False
+					self.vetor_y = 0
+					dy = tile[1].top - self.rect.bottom	
 
 		#Atualizar a posição
 		self.rect.x += dx
@@ -234,7 +247,7 @@ class Soldado(pygame.sprite.Sprite):
 		screen.blit(pygame.transform.flip(self.sprite, self.flip, False), self.rect)
 
 		#Para ver as hitbox
-		#pygame.draw.rect(screen, RED, self.rect, 1)
+		pygame.draw.rect(screen, RED, self.rect, 1)
 
 	def IA_Vietnamita(self):
 		#Função para fazer as IA's do Vietnamitas
@@ -296,9 +309,9 @@ class BarraRealoading():
      
 		porcentagem = limitador_projeteis / max_limitador_projeteis
 
-		pygame.draw.rect(screen, BLACK, (self.x - 200, self.y - 100, 450, 350))
-		pygame.draw.rect(screen, GRAY, (self.x - 5, self.y - 5, 230, 60))
-		pygame.draw.rect(screen, YELLOW, ((self.x, self.y, 220 * porcentagem, 50)))
+		pygame.draw.rect(screen, BLACK, (self.x - 200, self.y - 100, 450, 200))
+		pygame.draw.rect(screen, GRAY, (self.x - 5, self.y + 20, 230, 60))
+		pygame.draw.rect(screen, YELLOW, ((self.x, self.y + 25, 220 * porcentagem, 50)))
 
 
 
@@ -347,6 +360,18 @@ class Projetil(pygame.sprite.Sprite):
 		if self.rect.right < 0 or self.rect.left > width:
 			self.kill()
 
+		#Verificar colisão entre grades
+		for inimigo in grupo_inimigos:
+			for tile in mapa.lista_obstaculo:
+				if tile[1].colliderect(self.rect):
+					self.kill()
+					if self.tipo_personagem == 'Personagem_Rambo':
+						explosao = Explosao(self.rect.x, self.rect.y, 1)
+						grupo_explosoes.add(explosao)
+						#Aplicando dano em área para os personagens
+						if abs(self.rect.centerx - inimigo.rect.centerx) < TILE_SIZE * 3 and abs(self.rect.centery - inimigo.rect.centery) < TILE_SIZE * 3:
+							inimigo.qtd_vida -= 30
+
 		#Verificar colisões entre personagens e projeteis
 		if pygame.sprite.spritecollide(jogador, grupo_projeteis, False):
 			if jogador.vida:
@@ -360,10 +385,10 @@ class Projetil(pygame.sprite.Sprite):
 					if jogador.qtd_vida > jogador.qtd_max_vida:
 						jogador.qtd_vida = jogador.qtd_max_vida
 					self.kill()
-					explosao = Explosao(self.rect.x, self.rect.y, 1)
+					explosao = Explosao(self.rect.x, self.rect.y, 1.5)
 					grupo_explosoes.add(explosao)
 					#Aplicando dano em área para os personagens
-					if abs(self.rect.centerx - inimigo.rect.centerx) < 100 and abs(self.rect.centery - inimigo.rect.centery) < 100:
+					if abs(self.rect.centerx - inimigo.rect.centerx) < TILE_SIZE * 3 and abs(self.rect.centery - inimigo.rect.centery) < TILE_SIZE * 3:
 						inimigo.qtd_vida -= 30
 
 		#Carregar o sprite
@@ -463,21 +488,52 @@ class Mapa():
 					sprite_rect.x = x * TILE_SIZE
 					sprite_rect.y = y * TILE_SIZE
 					tile_data = (sprite, sprite_rect)
+					
+					#Grades com colisões
+					if tile >= 0 and tile <= 10:#Grades com colisões
+						self.lista_obstaculo.append(tile_data)
+					#Grades decorativas
+					elif tile >= 11 and tile <= 25:#Grades decorativas
+						decoracao = Decoracao(sprite, x *TILE_SIZE, y * TILE_SIZE)
+						grupo_decoracoes.add(decoracao)
+					#Fim da fase
+					elif tile == 26:#Fim da fase
+						saida = Saida(sprite, x *TILE_SIZE, y * TILE_SIZE)
+						grupo_saidas.add(saida)
+					#Criar jogador
+					elif tile == 27:
+						jogador = Soldado('Personagem_Rambo', x * TILE_SIZE, y * TILE_SIZE, 0.4, 15, 100)#Criar jogador
+						barra_recarregar_arma = BarraRealoading(170, 60, jogador.limitador_projeteis)
+					elif tile == 28:#Criar inimigo
+						inimigo = Soldado('Personagem_Vietnamita', x *TILE_SIZE, y * TILE_SIZE, 0.4, 5, 50)#Criar inimigos
+						grupo_inimigos.add(inimigo)
+
+		return jogador, barra_recarregar_arma
+	
+	def Carregar(self):
+		for tile in self.lista_obstaculo:
+			screen.blit(tile[0], tile[1])
+
+class Decoracao(pygame.sprite.Sprite):
+	def __init__(self, image, x, y):
+		pygame.sprite.Sprite.__init__(self)
+		self.image = image
+		self.rect = self.image.get_rect()
+		self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
+
+class Saida(pygame.sprite.Sprite):
+	def __init__(self, image, x, y):
+		pygame.sprite.Sprite.__init__(self)
+		self.image = image
+		self.rect = self.image.get_rect()
+		self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
 
 #Criando grupos
 grupo_inimigos = pygame.sprite.Group()
 grupo_projeteis = pygame.sprite.Group()
 grupo_explosoes = pygame.sprite.Group()
-
-
-#Criando personagens
-#Tipo, posição X, posição Y, escala, velocidade, qtd_vida
-jogador = Soldado('Personagem_Rambo', width/2, height/2, 0.4, 10, 100)
-inimigo = Soldado('Personagem_Vietnamita', width/3, 900, 0.4, 5, 50)
-grupo_inimigos.add(inimigo)
-
-#Criando a barra de recarregar a arma
-barra_recarregar_arma = BarraRealoading(170, 1020, jogador.limitador_projeteis)
+grupo_decoracoes = pygame.sprite.Group()
+grupo_saidas = pygame.sprite.Group()
 
 #Criar listas de blocos vazios
 world_data = []
@@ -492,6 +548,8 @@ with open(f'Matrizes/level{level}_data.csv', newline='') as csvfile:
 		for y, tile in enumerate(linha):
 			world_data[x][y] = int(tile)
 
+mapa = Mapa()
+jogador, barra_recarregar_arma = mapa.process_data(world_data)
 while True:
 
 	#Taxas de quadros por segundo
@@ -499,6 +557,16 @@ while True:
 
 	#Atualizando o background
 	Carregar_Background()
+
+	
+	#Atualizando o mapap
+	mapa.Carregar()
+
+	#Atualizando grades
+	grupo_decoracoes.update()
+	grupo_saidas.update()
+	grupo_decoracoes.draw(screen)
+	grupo_saidas.draw(screen)
 
 
 	#Atualizar projeteis
@@ -519,7 +587,7 @@ while True:
 	#HUD da arma recarregando
 	barra_recarregar_arma.Carregar(jogador.limitador_projeteis)
 	#HUD da vida
-	Carregar_HUD(f'VIDAS: {jogador.qtd_vida}/{jogador.qtd_max_vida}', font, WHITE, 150, 950)
+	Carregar_HUD(f'VIDAS: {jogador.qtd_vida}/{jogador.qtd_max_vida}', font, WHITE, 150, 20)
 
 
 	#Se o protagonista está vivo
