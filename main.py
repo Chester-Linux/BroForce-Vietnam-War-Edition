@@ -1,3 +1,4 @@
+from typing import Any
 import pygame
 import os
 import sys
@@ -56,7 +57,7 @@ YELLOW = (255, 255, 0)
 GRAY = (80, 80, 80)
 
 #Variaveis para mover a câmera
-SCROLL_THRESH = 300
+SCROLL_THRESH = 200
 screen_scroll = 0
 bg_scroll = 0
 
@@ -205,7 +206,7 @@ class Soldado(pygame.sprite.Sprite):
 		self.rect.y += dy
 
 		#Atualizar a câmera
-		if self.tipo_personagem == 'jogador':
+		if self.tipo_personagem == 'Personagem_Rambo':
 			if self.rect.right > width - SCROLL_THRESH or self.rect.left < SCROLL_THRESH:
 				self.rect.x -= dx
 				screen_scroll = -dx
@@ -313,6 +314,9 @@ class Soldado(pygame.sprite.Sprite):
 						self.contador_inativo -= 1
 						if self.contador_inativo <= 0:
 							self.inativo = False
+
+		#Atualizando a posição de acordo com a câmera
+		self.rect.x += screen_scroll
 
 
 #Clase para a barra de recarregar a arma
@@ -488,6 +492,9 @@ class Explosao(pygame.sprite.Sprite):
 
 		self.Carregar()
 
+		#Atualizando a posição de acordo com a câmera
+		self.rect.x += screen_scroll
+
 
 	def Carregar(self):
 		screen.blit(self.image, self.rect)
@@ -532,6 +539,8 @@ class Mapa():
 	
 	def Carregar(self):
 		for tile in self.lista_obstaculo:
+			#Atualizando a posição de acordo com a câmera
+			tile[1][0] += screen_scroll
 			screen.blit(tile[0], tile[1])
 
 class Decoracao(pygame.sprite.Sprite):
@@ -541,12 +550,20 @@ class Decoracao(pygame.sprite.Sprite):
 		self.rect = self.image.get_rect()
 		self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
 
+	def update(self):
+		#Atualizando a posição de acordo com a câmera
+		self.rect.x += screen_scroll
+
 class Saida(pygame.sprite.Sprite):
 	def __init__(self, image, x, y):
 		pygame.sprite.Sprite.__init__(self)
 		self.image = image
 		self.rect = self.image.get_rect()
 		self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
+
+	def update(self):
+		#Atualizando a posição de acordo com a câmera
+		self.rect.x += screen_scroll
 
 #Criando grupos
 grupo_inimigos = pygame.sprite.Group()
@@ -624,7 +641,7 @@ while True:
 			jogador.Atualizar_Acao(0)#0: Animação de parado
 		screen_scroll = jogador.Mover(mover_esquerda, mover_direita)
 
-		print (screen_scroll)
+		print
 
 
 	#Sair do jogo
