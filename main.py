@@ -48,16 +48,24 @@ start_game = False
 tipo_menu = "menu_principal"
 
 #Carregar músicas
-jump_sound = pygame.mixer.Sound('Musicas_efeitos_sonoros/Pulando.mp3')
+#Trilha sonora
+pygame.mixer.music.load('Musicas_efeitos_sonoros/Forest.mp3')
+pygame.mixer.music.set_volume(0.3)
+pygame.mixer.music.play(-1, 0.0, 5000)
+
+#Efeito sonoros
+jump_sound = pygame.mixer.Sound('Musicas_efeitos_sonoros/Jump_Sound.wav')
 jump_sound.set_volume(0.2)
-walk_sound = pygame.mixer.Sound('Musicas_efeitos_sonoros/Andando.mp3')
+walk_sound = pygame.mixer.Sound('Musicas_efeitos_sonoros/Walk_Sound.wav')
 walk_sound.set_volume(0.2)
-rocket_shot_sound = pygame.mixer.Sound('Musicas_efeitos_sonoros/Som-de-Rocket.mp3')
-rocket_shot_sound.set_volume(0.3)
-bullet_shot_sound = pygame.mixer.Sound('Musicas_efeitos_sonoros/Sons-de-Tiros.mp3')
+eat_sound = pygame.mixer.Sound('Musicas_efeitos_sonoros/Eating_Sound.ogg')
+eat_sound.set_volume(0.2)
+missle_shot_sound = pygame.mixer.Sound('Musicas_efeitos_sonoros/Missle_Sound.wav')
+missle_shot_sound.set_volume(0.3)
+bullet_shot_sound = pygame.mixer.Sound('Musicas_efeitos_sonoros/Bullet_Sound.mp3')
 bullet_shot_sound.set_volume(0.3)
-explosion_sound = pygame.mixer.Sound('Musicas_efeitos_sonoros/Explosao.mp3')
-explosion_sound.set_volume(0.4)
+explosion_sound = pygame.mixer.Sound('Musicas_efeitos_sonoros/Explosion_Sound.wav')
+explosion_sound.set_volume(0.3)
 
 #Gravidade
 GRAVIDADE = 0.6
@@ -100,13 +108,18 @@ rocket_image = pygame.transform.scale_by(rocket_image, 0.3)
 #Carregando imagens do background
 sky_image = pygame.image.load('Matrizes/Background/sky.png').convert_alpha()
 mountain_image = pygame.image.load('Matrizes/Background/mountain.png').convert_alpha()
+forest1_image = pygame.image.load('Matrizes/Background/forest1.png').convert_alpha()
+forest2_image = pygame.image.load('Matrizes/Background/forest2.png').convert_alpha()
+forest3_image = pygame.image.load('Matrizes/Background/forest3.png').convert_alpha()
 
 def Carregar_Background():
-	screen.fill(WHITE)
 	width = sky_image.get_width()
 	for i in range(5):
 		screen.blit(sky_image, ((i * width) - bg_scroll * 0.5, 0))
-		screen.blit(mountain_image, ((i * width) - bg_scroll * 0.6, height - mountain_image.get_height() - 300))
+		screen.blit(mountain_image, ((i * width) - bg_scroll * 0.6, height - mountain_image.get_height()))
+		screen.blit(forest1_image, ((i * width) - bg_scroll * 0.7, height - forest1_image.get_height() - 100))
+		screen.blit(forest2_image, ((i * width) - bg_scroll * 0.8, height - forest2_image.get_height() - 60))
+		screen.blit(forest3_image, ((i * width) - bg_scroll * 0.9, height - forest3_image.get_height() - 50))
 
 #Definindo a HUD (vulgo interface)// Temporariamente em desuso
 font = pygame.font.SysFont('Futura', 50)
@@ -259,6 +272,7 @@ class Soldado(pygame.sprite.Sprite):
 			self.vetor_y = -15
 			self.pular = False
 			self.no_ar = True
+			jump_sound.play()
 
 		#Aplicando gravidade
 		self.vetor_y += GRAVIDADE
@@ -271,12 +285,6 @@ class Soldado(pygame.sprite.Sprite):
 			#Para o vetor X
 			if tile[1].colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
 				dx = 0
-
-				#Verificar se caso um inimigo um inimigo está preso na parede
-				#if self.tipo_personagem == 'Personagem_Vietnamita':
-				#	self.direcao *= -1
-				#	self.contador_passos = 0
-			#Para o vetor y
 			if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
 				#Verificando se ele está em cima ou em baixo de uma grade
 				if self.vetor_y < 0:
@@ -324,7 +332,7 @@ class Soldado(pygame.sprite.Sprite):
 			projetil = Projetil(self.rect.centerx, self.rect.centery, self.direcao, self.tipo_personagem, self.scale)
 			grupo_projeteis.add(projetil)
 			if self.tipo_personagem == 'Personagem_Rambo':
-				rocket_shot_sound.play()
+				missle_shot_sound.play()
 			else:
 				bullet_shot_sound.play()
 		
@@ -512,10 +520,8 @@ class Projetil(pygame.sprite.Sprite):
 		for inimigo in grupo_inimigos:
 			if pygame.sprite.spritecollide(inimigo, grupo_projeteis, False):
 				if inimigo.vida:
-					jogador.qtd_vida += 10
-					if jogador.qtd_vida > jogador.qtd_max_vida:
-						jogador.qtd_vida = jogador.qtd_max_vida
-					self.kill()
+					self.kill()		
+					explosion_sound.play()
 					if self.tipo_personagem == 'Personagem_Rambo':
 						explosion_sound.play()
 						explosao = Explosao(self.rect.x, self.rect.y, 1)
@@ -831,7 +837,6 @@ while True:
 				atirar = True
 			if event.key == pygame.K_SPACE and jogador.vida:
 				jogador.pular = True
-				jump_sound.play()
 			if event.key == pygame.K_ESCAPE:
 				sys.exit()
 
