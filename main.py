@@ -1,12 +1,13 @@
-from typing import Any
 import pygame
 import os
 import sys
 import csv
+from pygame import mixer
 from random import randint
 from pygame.locals import *
 from sys import exit
 
+mixer.init()
 pygame.init()
 
 #Resolução da tela
@@ -25,7 +26,7 @@ FPS = 60
 
 #Linhas e colunas
 linhas = 20
-colunas = 100
+colunas = 200
 
 #TILE_SIZE
 TILE_SIZE = height//linhas
@@ -39,10 +40,27 @@ for i in range(TILE_TYPES):
 	lista_sprites.append(sprite)
 
 #Niveis
-level = 1
+level = 0
+MAX_LEVELS = 3
+
+#Variaveis de menu
+start_game = False
+tipo_menu = "menu_principal"
+
+#Carregar músicas
+jump_sound = pygame.mixer.Sound('Musicas_efeitos_sonoros/Pulando.mp3')
+jump_sound.set_volume(0.2)
+walk_sound = pygame.mixer.Sound('Musicas_efeitos_sonoros/Andando.mp3')
+walk_sound.set_volume(0.2)
+rocket_shot_sound = pygame.mixer.Sound('Musicas_efeitos_sonoros/Som-de-Rocket.mp3')
+rocket_shot_sound.set_volume(0.3)
+bullet_shot_sound = pygame.mixer.Sound('Musicas_efeitos_sonoros/Sons-de-Tiros.mp3')
+bullet_shot_sound.set_volume(0.3)
+explosion_sound = pygame.mixer.Sound('Musicas_efeitos_sonoros/Explosao.mp3')
+explosion_sound.set_volume(0.4)
 
 #Gravidade
-GRAVIDADE = 0.5
+GRAVIDADE = 0.6
 
 #Variaveis de ações do jogador
 mover_esquerda = False
@@ -55,29 +73,92 @@ WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 YELLOW = (255, 255, 0)
 GRAY = (80, 80, 80)
+BLUE = (0, 0, 255)
 
 #Variaveis para mover a câmera
 SCROLL_THRESH = 200
 screen_scroll = 0
 bg_scroll = 0
 
-#Carregando o background
-florest1_image = pygame.image.load('Matrizes/Background/florest1.png').convert_alpha()
-florest2_image = pygame.image.load('Matrizes/Background/florest2.png').convert_alpha()
+#Carregando dos botões
+start_image = pygame.image.load('Botoes/Start.png').convert_alpha()
+exit_image = pygame.image.load('Botoes/Exit.png').convert_alpha()
+reset_image = pygame.image.load('Botoes/Reset.png').convert_alpha()
+controles_image = pygame.image.load('Botoes/Controles.png').convert_alpha()
+back_image = pygame.image.load('Botoes/Back.png').convert_alpha()
+
+#Carregando imagens para o menu de controles
+menu_controles_image = pygame.image.load('Botoes/menu_controles.png').convert_alpha()
+andando_image = pygame.image.load('Personagem_Rambo/Andar/0.png').convert_alpha()
+andando_image = pygame.transform.scale_by(andando_image, 0.3)
+pulando_image = pygame.image.load('Personagem_Rambo/pular/0.png').convert_alpha()
+pulando_image = pygame.transform.scale_by(pulando_image, 0.3)
+rocket_image = pygame.image.load('Personagem_Rambo/Projetil/0.png').convert_alpha()
+rocket_image = pygame.transform.scale_by(rocket_image, 0.3)
+
+
+#Carregando imagens do background
 sky_image = pygame.image.load('Matrizes/Background/sky.png').convert_alpha()
-BG = (145, 201, 125)
+mountain_image = pygame.image.load('Matrizes/Background/mountain.png').convert_alpha()
 
 def Carregar_Background():
-	screen.fill(BG)
-	screen.blit(sky_image, (0, 0))
-	screen.blit(florest2_image, (0, height - florest2_image.get_height() - 300))
-	screen.blit(florest1_image, (0, height - florest1_image.get_height() - 150))
+	screen.fill(WHITE)
+	width = sky_image.get_width()
+	for i in range(5):
+		screen.blit(sky_image, ((i * width) - bg_scroll * 0.5, 0))
+		screen.blit(mountain_image, ((i * width) - bg_scroll * 0.6, height - mountain_image.get_height() - 300))
 
 #Definindo a HUD (vulgo interface)// Temporariamente em desuso
 font = pygame.font.SysFont('Futura', 50)
 def Carregar_HUD(text, font, text_col, x, y):
 	sprite = font.render(text, True, text_col)
 	screen.blit(sprite, (x, y))
+
+#Classe para os botões
+class Button():
+	def __init__(self,x, y, image, scale):
+		width = image.get_width()
+		height = image.get_height()
+		self.image = pygame.transform.scale(image, (int(width * scale), int(height * scale)))
+		self.rect = self.image.get_rect()
+		self.rect.topleft = (x, y)
+		self.clicked = False
+
+	def draw(self, surface):
+		action = False
+
+		#get mouse position
+		pos = pygame.mouse.get_pos()
+
+		#check mouseover and clicked conditions
+		if self.rect.collidepoint(pos):
+			if pygame.mouse.get_pressed()[0] == 1 and self.clicked == False:
+				action = True
+				self.clicked = True
+
+		if pygame.mouse.get_pressed()[0] == 0:
+			self.clicked = False
+
+		#draw button
+		surface.blit(self.image, (self.rect.x, self.rect.y))
+
+		return action
+
+#Função para resetar o level
+def reset_level():
+	grupo_inimigos.empty()
+	grupo_projeteis.empty()
+	grupo_explosoes.empty()
+	grupo_decoracoes.empty()
+	grupo_saidas.empty()
+
+	#Criando novas listas vazias
+	data = []
+	for linha in range(linhas):
+		R = [-1] * colunas
+		data.append(R)
+
+	return data
 
 #Classe para criação de personagem
 class Soldado(pygame.sprite.Sprite):
@@ -185,11 +266,16 @@ class Soldado(pygame.sprite.Sprite):
 			self.vetor_y
 		dy += self.vetor_y
 
-		#Verificador de colisão
+		#Verificar colisão
 		for tile in mapa.lista_obstaculo:
 			#Para o vetor X
 			if tile[1].colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
 				dx = 0
+
+				#Verificar se caso um inimigo um inimigo está preso na parede
+				#if self.tipo_personagem == 'Personagem_Vietnamita':
+				#	self.direcao *= -1
+				#	self.contador_passos = 0
 			#Para o vetor y
 			if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
 				#Verificando se ele está em cima ou em baixo de uma grade
@@ -199,7 +285,21 @@ class Soldado(pygame.sprite.Sprite):
 				elif self.vetor_y >= 0:
 					self.no_ar = False
 					self.vetor_y = 0
-					dy = tile[1].top - self.rect.bottom	
+					dy = tile[1].top - self.rect.bottom
+
+		#Verificar se ele chegou no fim do level
+		level_completo = False
+		if pygame.sprite.spritecollide(self, grupo_saidas, False):
+			level_completo = True		
+		
+		#Verificar se ele caiu fora do mapa
+		if self.rect.bottom > height:
+			self.qtd_vida = 0
+
+		#Verificar se o personagem está saindo do mapa
+		if self.tipo_personagem == 'Personagem_Rambo':
+			if self.rect.left + dx < 0 or self.rect.right + dx > width:
+				dx = 0
 
 		#Atualizar a posição
 		self.rect.x += dx
@@ -207,11 +307,11 @@ class Soldado(pygame.sprite.Sprite):
 
 		#Atualizar a câmera
 		if self.tipo_personagem == 'Personagem_Rambo':
-			if self.rect.right > width - SCROLL_THRESH or self.rect.left < SCROLL_THRESH:
+			if (self.rect.right > width - SCROLL_THRESH and bg_scroll < (mapa.largura_level * TILE_SIZE) - width) or (self.rect.left < SCROLL_THRESH and bg_scroll > abs(dx)):
 				self.rect.x -= dx
 				screen_scroll = -dx
 
-		return screen_scroll
+		return screen_scroll, level_completo
 
 
 	def Atirar(self, scale):
@@ -223,6 +323,10 @@ class Soldado(pygame.sprite.Sprite):
 			self.limitador_projeteis = max_limitador_projeteis
 			projetil = Projetil(self.rect.centerx, self.rect.centery, self.direcao, self.tipo_personagem, self.scale)
 			grupo_projeteis.add(projetil)
+			if self.tipo_personagem == 'Personagem_Rambo':
+				rocket_shot_sound.play()
+			else:
+				bullet_shot_sound.play()
 		
 
 	def Atualizacao_Animacao(self):
@@ -272,8 +376,8 @@ class Soldado(pygame.sprite.Sprite):
 
 	def IA_Vietnamita(self):
 		#Função para fazer as IA's do Vietnamitas
+		
 		#Verificador de inatividade
-	
 		if self.vida and jogador.vida:
 			#Gerador de número aleatório
 			if self.inativo == False and randint(1, 200) == 1:
@@ -325,6 +429,8 @@ class BarraRealoading():
 		self.x = x
 		self.y = y
 		self.limitador_projeteis = limitador_projeteis
+		self.image = pygame.image.load('Personagem_Rambo/Rosto_HUD/Rosto_Rambo.png').convert_alpha()
+		self.image = pygame.transform.scale_by(self.image, 1)
 
 
 	def Carregar(self, limitador_projeteis):
@@ -336,6 +442,7 @@ class BarraRealoading():
 		pygame.draw.rect(screen, BLACK, (self.x - 200, self.y - 100, 450, 200))
 		pygame.draw.rect(screen, GRAY, (self.x - 5, self.y + 20, 230, 60))
 		pygame.draw.rect(screen, YELLOW, ((self.x, self.y + 25, 220 * porcentagem, 50)))
+		screen.blit(self.image, (self.x - 150, self.y - 40))
 
 
 
@@ -370,6 +477,7 @@ class Projetil(pygame.sprite.Sprite):
 		self.image = self.lista_animacao[self.frame_index]
 		self.rect = self.image.get_rect()
 		self.rect.center = (x + 90 * self.direcao, y + -5)
+		self.mask = pygame.mask.from_surface(self.image)
 
 
 	def update(self):
@@ -378,7 +486,7 @@ class Projetil(pygame.sprite.Sprite):
 		self.Atualizacao_Animacao()
 
 		#Movimentação do projetil
-		self.rect.x += (self.direcao * self.speed)
+		self.rect.x += (self.direcao * self.speed) + screen_scroll
 
 		#Verificar se o projetil saiu da tela
 		if self.rect.right < 0 or self.rect.left > width:
@@ -404,16 +512,17 @@ class Projetil(pygame.sprite.Sprite):
 		for inimigo in grupo_inimigos:
 			if pygame.sprite.spritecollide(inimigo, grupo_projeteis, False):
 				if inimigo.vida:
-					inimigo.qtd_vida -= 20
 					jogador.qtd_vida += 10
 					if jogador.qtd_vida > jogador.qtd_max_vida:
 						jogador.qtd_vida = jogador.qtd_max_vida
 					self.kill()
-					explosao = Explosao(self.rect.x, self.rect.y, 1.5)
-					grupo_explosoes.add(explosao)
-					#Aplicando dano em área para os personagens
-					if abs(self.rect.centerx - inimigo.rect.centerx) < TILE_SIZE * 3 and abs(self.rect.centery - inimigo.rect.centery) < TILE_SIZE * 3:
-						inimigo.qtd_vida -= 30
+					if self.tipo_personagem == 'Personagem_Rambo':
+						explosion_sound.play()
+						explosao = Explosao(self.rect.x, self.rect.y, 1)
+						grupo_explosoes.add(explosao)
+						#Aplicando dano em área para os personagens
+						if abs(self.rect.centerx - inimigo.rect.centerx) < TILE_SIZE * 5 and abs(self.rect.centery - inimigo.rect.centery) < TILE_SIZE * 5:
+							inimigo.qtd_vida -= 100
 
 		#Carregar o sprite
 		self.Direcao()
@@ -471,6 +580,7 @@ class Explosao(pygame.sprite.Sprite):
 		self.image = self.lista_animacao[self.frame_index]
 		self.rect = self.image.get_rect()
 		self.rect.center = (x, y)
+		self.mask = pygame.mask.from_surface(self.image)
 
 
 	def update(self):
@@ -507,6 +617,8 @@ class Mapa():
 		self.lista_obstaculo = []
 
 	def process_data(self, data):
+		self.largura_level = len(data[0])
+
 		for y, linha in enumerate(data):
 			for x, tile in enumerate(linha):
 				if tile >= 0:
@@ -565,6 +677,15 @@ class Saida(pygame.sprite.Sprite):
 		#Atualizando a posição de acordo com a câmera
 		self.rect.x += screen_scroll
 
+
+#Criando os botões
+botao_start = Button(width//2 - 200, height//2 - 400, start_image, 2)
+botao_exit = Button(width//2 - 200, height//2, exit_image, 2)
+botao_reset = Button(width//2 - 200, height//2, reset_image, 2)
+botao_controles = Button(width//2 - 200, height//2 - 200, controles_image, 2)
+botao_back = Button(width//2 - 200, height//2 + 300, back_image, 2)
+
+
 #Criando grupos
 grupo_inimigos = pygame.sprite.Group()
 grupo_projeteis = pygame.sprite.Group()
@@ -592,56 +713,105 @@ while True:
 	#Taxas de quadros por segundo
 	clock.tick(FPS)
 
-	#Atualizando o background
-	Carregar_Background()
 
+	if start_game == False:
+		#Cor de fundo do menu
+		screen.fill(BLUE)
+
+		#Verificar qual menu está sendo chamado
+		if tipo_menu == "menu_principal":
+		#Botões
+			if botao_start.draw(screen):
+				start_game = True
+			if botao_controles.draw(screen):
+				tipo_menu = "menu_controles"
+			if botao_exit.draw(screen):
+				pygame.quit()
+				exit()
+		if tipo_menu == "menu_controles":
+			screen.blit(menu_controles_image, (150, 200))
+			screen.blit(andando_image, (150, 330))
+			screen.blit(pulando_image, (150, 490))
+			screen.blit(rocket_image, (150, 620))
+			if botao_back.draw(screen):
+				tipo_menu = "menu_principal"
+	else:
+		#Atualizando o background
+		Carregar_Background()
+
+
+		#Atualizando o mapap
+		mapa.Carregar()
+
+		#Atualizando grades
+		grupo_decoracoes.update()
+		grupo_saidas.update()
+		grupo_decoracoes.draw(screen)
+		grupo_saidas.draw(screen)
+
+
+		#Atualizar projeteis
+		grupo_projeteis.update()
+
+
+		#Atualizar personagens
+		jogador.update()
+		for inimigo in grupo_inimigos:
+			inimigo.IA_Vietnamita()
+			inimigo.update()
 	
-	#Atualizando o mapap
-	mapa.Carregar()
-
-	#Atualizando grades
-	grupo_decoracoes.update()
-	grupo_saidas.update()
-	grupo_decoracoes.draw(screen)
-	grupo_saidas.draw(screen)
+		#Atualizar explosão
+		grupo_explosoes.update()
 
 
-	#Atualizar projeteis
-	grupo_projeteis.update()
+		#Atualizando a HUD
+		#HUD da arma recarregando
+		barra_recarregar_arma.Carregar(jogador.limitador_projeteis)
+		#HUD da vida
+		Carregar_HUD(f'VIDAS: {jogador.qtd_vida}/{jogador.qtd_max_vida}', font, WHITE, 150, 20)
 
 
-	#Atualizar personagens
-	jogador.update()
-	for inimigo in grupo_inimigos:
-		inimigo.IA_Vietnamita()
-		inimigo.update()
-  
-	#Atualizar explosão
-	grupo_explosoes.update()
+		#Se o protagonista está vivo
+		if jogador.vida:
+			#Atirando projetis
+			if atirar:
+				jogador.Atirar(0.2)
+			#Controlando quando ativa qual animação
+			if jogador.no_ar:
+				jogador.Atualizar_Acao(2)#2: Animação de pular
+			elif mover_esquerda or mover_direita:
+				jogador.Atualizar_Acao(1)#1: Animação de andar
+			else:
+				jogador.Atualizar_Acao(0)#0: Animação de parado
+			screen_scroll, level_completo = jogador.Mover(mover_esquerda, mover_direita)
+			bg_scroll -= screen_scroll
 
+			#Verificar se o jogador terminou o level
+			if level_completo:
+				level += 1
+				world_data = reset_level()
+				if level <= MAX_LEVELS:
+					with open(f'Matrizes/level{level}_data.csv', newline='') as csvfile:
+						reader = csv.reader(csvfile, delimiter=',')
+						for x, linha in enumerate(reader):
+							for y, tile in enumerate(linha):
+								world_data[x][y] = int(tile)
+					mapa = Mapa()
+					jogador, barra_recarregar_arma = mapa.process_data(world_data)
 
-	#Atualizando a HUD
-	#HUD da arma recarregando
-	barra_recarregar_arma.Carregar(jogador.limitador_projeteis)
-	#HUD da vida
-	Carregar_HUD(f'VIDAS: {jogador.qtd_vida}/{jogador.qtd_max_vida}', font, WHITE, 150, 20)
-
-
-	#Se o protagonista está vivo
-	if jogador.vida:
-		#Atirando projetis
-		if atirar:
-			jogador.Atirar(0.2)
-		#Controlando quando ativa qual animação
-		if jogador.no_ar:
-			jogador.Atualizar_Acao(2)#2: Animação de pular
-		elif mover_esquerda or mover_direita:
-			jogador.Atualizar_Acao(1)#1: Animação de andar
 		else:
-			jogador.Atualizar_Acao(0)#0: Animação de parado
-		screen_scroll = jogador.Mover(mover_esquerda, mover_direita)
-
-		print
+			screen_scroll = 0
+			if botao_reset.draw(screen):
+				bg_scroll = 0
+				world_data = reset_level()
+				#Carregar os dados e criar um mundo
+				with open(f'Matrizes/level{level}_data.csv', newline='') as csvfile:
+					reader = csv.reader(csvfile, delimiter=',')
+					for x, linha in enumerate(reader):
+						for y, tile in enumerate(linha):
+							world_data[x][y] = int(tile)
+				mapa = Mapa()
+				jogador, barra_recarregar_arma = mapa.process_data(world_data)
 
 
 	#Sair do jogo
@@ -661,6 +831,7 @@ while True:
 				atirar = True
 			if event.key == pygame.K_SPACE and jogador.vida:
 				jogador.pular = True
+				jump_sound.play()
 			if event.key == pygame.K_ESCAPE:
 				sys.exit()
 
