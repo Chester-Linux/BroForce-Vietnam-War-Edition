@@ -26,7 +26,7 @@ FPS = 60
 
 #Linhas e colunas
 linhas = 20
-colunas = 200
+colunas = 150
 
 #TILE_SIZE
 TILE_SIZE = height//linhas
@@ -485,7 +485,6 @@ class Projetil(pygame.sprite.Sprite):
 		self.image = self.lista_animacao[self.frame_index]
 		self.rect = self.image.get_rect()
 		self.rect.center = (x + 90 * self.direcao, y + -5)
-		self.mask = pygame.mask.from_surface(self.image)
 
 
 	def update(self):
@@ -520,7 +519,7 @@ class Projetil(pygame.sprite.Sprite):
 		for inimigo in grupo_inimigos:
 			if pygame.sprite.spritecollide(inimigo, grupo_projeteis, False):
 				if inimigo.vida:
-					self.kill()		
+					self.kill()	
 					explosion_sound.play()
 					if self.tipo_personagem == 'Personagem_Rambo':
 						explosion_sound.play()
@@ -586,7 +585,6 @@ class Explosao(pygame.sprite.Sprite):
 		self.image = self.lista_animacao[self.frame_index]
 		self.rect = self.image.get_rect()
 		self.rect.center = (x, y)
-		self.mask = pygame.mask.from_surface(self.image)
 
 
 	def update(self):
@@ -635,21 +633,21 @@ class Mapa():
 					tile_data = (sprite, sprite_rect)
 					
 					#Grades com colisões
-					if tile >= 0 and tile <= 10:#Grades com colisões
+					if tile >= 0 and tile <= 6:#Grades com colisões
 						self.lista_obstaculo.append(tile_data)
 					#Grades decorativas
-					elif tile >= 11 and tile <= 25:#Grades decorativas
+					elif tile >= 7 and tile <= 15:#Grades decorativas
 						decoracao = Decoracao(sprite, x *TILE_SIZE, y * TILE_SIZE)
 						grupo_decoracoes.add(decoracao)
 					#Fim da fase
-					elif tile == 26:#Fim da fase
+					elif tile == 16:#Fim da fase
 						saida = Saida(sprite, x *TILE_SIZE, y * TILE_SIZE)
 						grupo_saidas.add(saida)
 					#Criar jogador
-					elif tile == 27:
+					elif tile == 17:
 						jogador = Soldado('Personagem_Rambo', x * TILE_SIZE, y * TILE_SIZE, 0.4, 15, 100)#Criar jogador
 						barra_recarregar_arma = BarraRealoading(170, 60, jogador.limitador_projeteis)
-					elif tile == 28:#Criar inimigo
+					elif tile == 18:#Criar inimigo
 						inimigo = Soldado('Personagem_Vietnamita', x *TILE_SIZE, y * TILE_SIZE, 0.4, 5, 50)#Criar inimigos
 						grupo_inimigos.add(inimigo)
 

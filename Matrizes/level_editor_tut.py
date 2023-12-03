@@ -22,7 +22,7 @@ pygame.display.set_caption('Level Editor')
 
 #define game variables
 ROWS = 20
-MAX_COLS = 200
+MAX_COLS = 150
 TILE_SIZE = SCREEN_HEIGHT // ROWS
 TILE_TYPES = len(os.listdir(f'img/tile'))
 level = 0
