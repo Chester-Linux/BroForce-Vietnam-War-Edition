@@ -18,7 +18,7 @@ size = width, height
 screen = pygame.display.set_mode((size))
 
 #Nome do jogo
-pygame.display.set_caption ("Saving the John Lennon")
+pygame.display.set_caption ("Bro Force: Vietnam War Edition")
 
 #Frames por segundo
 clock = pygame.time.Clock()
