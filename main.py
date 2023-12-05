@@ -84,9 +84,12 @@ GRAY = (80, 80, 80)
 BLUE = (0, 0, 255)
 
 #Variaveis para mover a câmera
-SCROLL_THRESH = 200
+SCROLL_THRESH = 600
 screen_scroll = 0
 bg_scroll = 0
+
+#Tela de vitória
+tela_vitoria_image = pygame.image.load('Tela_Vitoria/Tela_Vitoria.png').convert_alpha()
 
 #Carregando dos botões
 start_image = pygame.image.load('Botoes/Start.png').convert_alpha()
@@ -114,7 +117,7 @@ forest3_image = pygame.image.load('Matrizes/Background/forest3.png').convert_alp
 
 def Carregar_Background():
 	width = sky_image.get_width()
-	for i in range(5):
+	for i in range(10):
 		screen.blit(sky_image, ((i * width) - bg_scroll * 0.5, 0))
 		screen.blit(mountain_image, ((i * width) - bg_scroll * 0.6, height - mountain_image.get_height()))
 		screen.blit(forest1_image, ((i * width) - bg_scroll * 0.7, height - forest1_image.get_height() - 100))
@@ -231,7 +234,7 @@ class Soldado(pygame.sprite.Sprite):
 		
 		self.image = self.lista_animacao[self.action][self.frame_index]
 		self.rect = self.image.get_rect()
-		self.rect.center = (x , y)
+		self.rect.center = (x, y)
 		self.width = self.image.get_width()
 		self.height = self.image.get_height()
 
@@ -721,7 +724,6 @@ while True:
 	if start_game == False:
 		#Cor de fundo do menu
 		screen.fill(BLUE)
-
 		#Verificar qual menu está sendo chamado
 		if tipo_menu == "menu_principal":
 		#Botões
@@ -802,6 +804,9 @@ while True:
 								world_data[x][y] = int(tile)
 					mapa = Mapa()
 					jogador, barra_recarregar_arma = mapa.process_data(world_data)
+				else:
+					screen.blit(tela_vitoria_image, (width, height))
+
 
 		else:
 			screen_scroll = 0

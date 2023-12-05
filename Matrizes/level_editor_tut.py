@@ -34,10 +34,11 @@ scroll_speed = 1
 
 
 #load images
-pine1_img = pygame.image.load('img/Background/pine1.png').convert_alpha()
-pine2_img = pygame.image.load('img/Background/pine2.png').convert_alpha()
-mountain_img = pygame.image.load('img/Background/mountain.png').convert_alpha()
-sky_img = pygame.image.load('img/Background/sky_cloud.png').convert_alpha()
+forest1_img = pygame.image.load('Background/forest1.png').convert_alpha()
+forest2_img = pygame.image.load('Background/forest2.png').convert_alpha()
+forest3_img = pygame.image.load('Background/forest3.png').convert_alpha()
+mountain_img = pygame.image.load('Background/mountain.png').convert_alpha()
+sky_img = pygame.image.load('Background/sky.png').convert_alpha()
 #store tiles in a list
 img_list = []
 for x in range(TILE_TYPES):
@@ -80,9 +81,10 @@ def draw_bg():
 	width = sky_img.get_width()
 	for x in range(4):
 		screen.blit(sky_img, ((x * width) - scroll * 0.5, 0))
-		screen.blit(mountain_img, ((x * width) - scroll * 0.6, SCREEN_HEIGHT - mountain_img.get_height() - 300))
-		screen.blit(pine1_img, ((x * width) - scroll * 0.7, SCREEN_HEIGHT - pine1_img.get_height() - 150))
-		screen.blit(pine2_img, ((x * width) - scroll * 0.8, SCREEN_HEIGHT - pine2_img.get_height()))
+		screen.blit(mountain_img, ((x * width) - scroll * 0.6, SCREEN_HEIGHT - mountain_img.get_height()))
+		screen.blit(forest1_img, ((x * width) - scroll * 0.7, SCREEN_HEIGHT - forest1_img.get_height() - 100))
+		screen.blit(forest2_img, ((x * width) - scroll * 0.7, SCREEN_HEIGHT - forest2_img.get_height() - 60))
+		screen.blit(forest3_img, ((x * width) - scroll * 0.7, SCREEN_HEIGHT - forest3_img.get_height() - 50))
 
 #draw grid
 def draw_grid():
@@ -171,9 +173,9 @@ while run:
 
 	#scroll the map
 	if scroll_left == True and scroll > 0:
-		scroll -= 5 * scroll_speed
+		scroll -= 25 * scroll_speed
 	if scroll_right == True and scroll < (MAX_COLS * TILE_SIZE) - SCREEN_WIDTH:
-		scroll += 5 * scroll_speed
+		scroll += 25 * scroll_speed
 
 	#add new tiles to the screen
 	#get mouse position
