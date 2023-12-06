@@ -41,7 +41,7 @@ for i in range(TILE_TYPES):
 
 #Niveis
 level = 0
-MAX_LEVELS = 3
+MAX_LEVELS = 2
 
 #Variaveis de menu
 start_game = False
@@ -89,7 +89,9 @@ screen_scroll = 0
 bg_scroll = 0
 
 #Tela de vitória
+Tela_Vitoria = False
 tela_vitoria_image = pygame.image.load('Tela_Vitoria/Tela_Vitoria.png').convert_alpha()
+tela_vitoria_image = pygame.transform.scale_by(tela_vitoria_image, 1.5)
 
 #Carregando dos botões
 start_image = pygame.image.load('Botoes/Start.png').convert_alpha()
@@ -192,7 +194,7 @@ class Soldado(pygame.sprite.Sprite):
 
 		#Variavel da quantiade de vida
 		self.qtd_vida = qtd_vida
-		self.qtd_max_vida = self.qtd_vida
+		self.qtd_max_vida = self.qtd_vida - 20 * level
 		
 		#Tipo de personagem, importante para mudar o sprite entre inimigo a jogador
 		self.tipo_personagem = tipo_personagem
@@ -371,6 +373,9 @@ class Soldado(pygame.sprite.Sprite):
 
 
 	def Verificar_Saude(self):
+		if self.vida > self.qtd_max_vida:
+			self.vida = self.qtd_max_vida
+     
 		if self.qtd_vida <= 0:
 			self.qtd_vida = 0
 			self.velocidade = 0
@@ -707,7 +712,7 @@ for linha in range(linhas):
 	world_data.append(R)
 
 #Carregar os dados e criar um mundo
-with open(f'Matrizes/level{level}_data.csv', newline='') as csvfile:
+with open(f'Matrizes/Fases/level{level}_data.csv', newline='') as csvfile:
 	reader = csv.reader(csvfile, delimiter=',')
 	for x, linha in enumerate(reader):
 		for y, tile in enumerate(linha):
@@ -715,6 +720,7 @@ with open(f'Matrizes/level{level}_data.csv', newline='') as csvfile:
 
 mapa = Mapa()
 jogador, barra_recarregar_arma = mapa.process_data(world_data)
+
 while True:
 
 	#Taxas de quadros por segundo
@@ -792,12 +798,15 @@ while True:
 			screen_scroll, level_completo = jogador.Mover(mover_esquerda, mover_direita)
 			bg_scroll -= screen_scroll
 
+			if Tela_Vitoria:
+				screen.blit(tela_vitoria_image, (0, 0))
+
 			#Verificar se o jogador terminou o level
 			if level_completo:
 				level += 1
 				world_data = reset_level()
 				if level <= MAX_LEVELS:
-					with open(f'Matrizes/level{level}_data.csv', newline='') as csvfile:
+					with open(f'Matrizes/Fases/level{level}_data.csv', newline='') as csvfile:
 						reader = csv.reader(csvfile, delimiter=',')
 						for x, linha in enumerate(reader):
 							for y, tile in enumerate(linha):
@@ -805,8 +814,7 @@ while True:
 					mapa = Mapa()
 					jogador, barra_recarregar_arma = mapa.process_data(world_data)
 				else:
-					screen.blit(tela_vitoria_image, (width, height))
-
+					Tela_Vitoria = True
 
 		else:
 			screen_scroll = 0
@@ -814,7 +822,7 @@ while True:
 				bg_scroll = 0
 				world_data = reset_level()
 				#Carregar os dados e criar um mundo
-				with open(f'Matrizes/level{level}_data.csv', newline='') as csvfile:
+				with open(f'Matrizes/Fases/level{level}_data.csv', newline='') as csvfile:
 					reader = csv.reader(csvfile, delimiter=',')
 					for x, linha in enumerate(reader):
 						for y, tile in enumerate(linha):
