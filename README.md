@@ -1,5 +1,5 @@
 # Bro Force: Vietnam War Edition
-"Saving the John Lennon" é um jogo experimental em 2D feito com pygame.
+"Bro Force: Vietnam War Edition" é um jogo experimental em 2D feito com pygame.
 Eu sinceramente não gostei muito do pygame, mas como eu nunca fiz um jogo por conta propria em outra plataforma, não vou fazer comparações :)
 
 Observações: 
